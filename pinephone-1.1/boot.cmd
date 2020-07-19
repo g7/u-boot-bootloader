@@ -1,3 +1,28 @@
+# Bargain basement dual-boot:
+# - If running on SD Card (devnum 0), we can check the status of the
+#   volume key and determine if the user would like to trigger 'dual-boot'
+# - This is not a proper chainload since the CPU state has been already
+#   changed by the current u-boot, so we can't load another u-boot, or
+#   whichever bootloader is in the eMMC
+# - The 'dual-boot' happens by changing the environment variables and searching
+#   for the eMMC OS' u-boot bootscript, then loading and sourcing it
+if test ${devnum) = 0 -a "${volume_key}" = "up" -a -e mmc 2:1 boot.scr; then
+	# Volume up has been pressed and a bootscript has been found
+	echo "Dual boot requested, and eMMC OS' bootscript has been found"
+	setenv devtype mmc
+	setenv devnum 2
+	setenv volume_key ""
+
+	if load ${devtype} ${devnum}:1 ${loadaddr} /boot.scr; then
+		echo "Loaded eMMC OS' bootscript"
+		source ${loadaddr}
+	else
+		echo "Unable to load eMMC OS's bootscript"
+	fi
+
+	reset
+fi
+
 echo "========== Setting up bootargs ==========="
 gpio set 98 # Enable vibrator
 gpio set 114 # Turn LED green on
